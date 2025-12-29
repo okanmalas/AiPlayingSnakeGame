@@ -1,4 +1,5 @@
-﻿using SnakeGame;
+﻿using System.Globalization;
+using SnakeGame;
 using SnakeGame.Ai;
 
 var game = new Game();
@@ -14,39 +15,97 @@ while (true)
     key = Console.ReadKey(true).KeyChar;
     switch (key)
     {
-        case '1':
+        case '1': // Train AI
             Console.Clear();
             Console.WriteLine("1 - Train from scratch");
-            Console.WriteLine("2 - Continue training existing model");
-            char sub = Console.ReadKey(true).KeyChar;
-            Console.WriteLine("Enter episode count:");
-            int ep = int.Parse(Console.ReadLine());
+            Console.WriteLine("2 - Continue existing model");
 
-            Console.WriteLine("Enter max steps per episode:");
-            int max = int.Parse(Console.ReadLine());
+            char mode = Console.ReadKey(true).KeyChar;
 
-            if (sub == '1')
+            QLearningAgent agent;
+
+            if (mode == '1')
             {
-                var trainer = new Trainer();
-                trainer.Train(ep, max);
+                agent = new QLearningAgent();
             }
-            else if (sub == '2')
+            else
             {
-                var agent = new QLearningAgent();
+                agent = new QLearningAgent();
                 agent.Load("snake_model.json");
-                agent.Epsilon = 0.5;
-                var trainer = new Trainer(agent);
-                trainer.Train(ep, max);
+
+                Console.WriteLine("Reset epsilon? (y/n)");
+                if (Console.ReadKey(true).KeyChar == 'y')
+                    agent.Epsilon = 1.0;
             }
+
+            Console.Clear();
+            Console.WriteLine("Select training preset:");
+            Console.WriteLine("1 - Survival");
+            Console.WriteLine("2 - Food chasing");
+            Console.WriteLine("3 - Optimization");
+            Console.WriteLine("4 - Custom");
+
+            char preset = Console.ReadKey(true).KeyChar;
+            TrainingConfig cfg;
+
+            if (preset == '1') cfg = TrainingPresets.Survival;
+            else if (preset == '2') cfg = TrainingPresets.FoodChasing;
+            else if (preset == '3') cfg = TrainingPresets.Optimization;
+            else
+            {
+                cfg = new TrainingConfig();
+
+                Console.WriteLine("Episodes:");
+                cfg.Episodes = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Max steps:");
+                cfg.MaxSteps = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Board width:");
+                cfg.BoardWidth = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Board height:");
+                cfg.BoardHeight = int.Parse(Console.ReadLine());
+
+                Console.WriteLine("Start epsilon:");
+                cfg.StartEpsilon = double.Parse(
+                    Console.ReadLine(),
+                    CultureInfo.InvariantCulture);
+
+                Console.WriteLine("Min epsilon:");
+                cfg.MinEpsilon = double.Parse(
+                    Console.ReadLine(),
+                    CultureInfo.InvariantCulture);
+
+                Console.WriteLine("Epsilon decay:");
+                cfg.EpsilonDecay = double.Parse(
+                    Console.ReadLine(),
+                    CultureInfo.InvariantCulture);
+            }
+
+            new Trainer(agent).Train(cfg);
             break;
+
 
         case '2': 
             Console.Clear();
             Console.WriteLine("enter the frame latency (miliseconds) >");
-            game.RunWithAI("snake_model.json",int.Parse(Console.ReadLine()));
+            int latency = int.Parse(Console.ReadLine());
+            Console.WriteLine("enter map width");
+            int mapWidth = int.Parse(Console.ReadLine());
+            Console.WriteLine("enter map height");
+            int mapHeight = int.Parse(Console.ReadLine());
+            game.RunWithAI("snake_model.json",latency, mapWidth, mapHeight);
             break;
         case '3':
-            game.Run();
+            Console.Clear();
+            Console.WriteLine("enter the frame latency (miliseconds) >");
+            int a = int.Parse(Console.ReadLine());
+            Console.WriteLine("enter map width");
+            int b = int.Parse(Console.ReadLine());
+            Console.WriteLine("enter map height");
+            int c = int.Parse(Console.ReadLine());
+            game.Run(a, b, c);
             break;
         case '0':
             Environment.Exit(0);

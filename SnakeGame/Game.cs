@@ -17,16 +17,16 @@ namespace SnakeGame
             food = new Food(board.Width, board.Height);
         }
 
-        public void Run()
+        public void Run(int latency, int width, int height)
         {
+            ResetGame(width, height);
             gameOver = false;
-
             while (!gameOver)
             {
                 Input();
                 Update();
                 Draw();
-                Thread.Sleep(120);
+                Thread.Sleep(latency);
             }
 
             Console.SetCursorPosition(0, board.Height + 2);
@@ -34,14 +34,16 @@ namespace SnakeGame
             Console.ReadKey();
         }
 
-        public void RunWithAI(string modelPath, int latency)
+        public void RunWithAI(string modelPath, int latency, int width, int height)
         {
+            ResetGame(width, height);
             var agent = new QLearningAgent();
             agent.Load(modelPath);   // epsilon = 0
 
             Console.CursorVisible = false;
             gameOver = false;
 
+            int stepCount = 0;
             while (!gameOver)
             {
                 int state = GetState();
@@ -51,12 +53,13 @@ namespace SnakeGame
 
                 Update();
                 Draw();
-
+                stepCount++;
                 Thread.Sleep(latency);
             }
 
             Console.SetCursorPosition(0, board.Height + 2);
             Console.WriteLine("AI Game Over");
+            Console.WriteLine($"Step Count: {stepCount}, Score: {snake.Length()}");
             Console.ReadKey();
         }
 
@@ -133,5 +136,13 @@ namespace SnakeGame
 
             return state;
         }
+        private void ResetGame(int width, int height)
+        {
+            board = new Board(width, height);
+            snake = new Snake(board.Width / 2, board.Height / 2);
+            food = new Food(board.Width, board.Height);
+            gameOver = false;
+        }
+
     }
 }

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
 
 namespace SnakeGame.Ai
@@ -44,6 +42,34 @@ namespace SnakeGame.Ai
         {
             if (Epsilon > EpsilonMin)
                 Epsilon *= EpsilonDecay;
+
+            if (Epsilon < EpsilonMin)
+                Epsilon = EpsilonMin;
+        }
+        public Dictionary<int, double[]> GetQTableCopy()
+        {
+            var copy = new Dictionary<int, double[]>();
+
+            foreach (var kv in qTable)
+            {
+                var arrCopy = new double[kv.Value.Length];
+                Array.Copy(kv.Value, arrCopy, kv.Value.Length);
+                copy[kv.Key] = arrCopy;
+            }
+
+            return copy;
+        }
+
+        public void LoadQTable(Dictionary<int, double[]> table)
+        {
+            qTable = new Dictionary<int, double[]>();
+
+            foreach (var kv in table)
+            {
+                var arrCopy = new double[kv.Value.Length];
+                Array.Copy(kv.Value, arrCopy, kv.Value.Length);
+                qTable[kv.Key] = arrCopy;
+            }
         }
 
         private int ArgMax(double[] arr)
@@ -61,10 +87,13 @@ namespace SnakeGame.Ai
                 if (v > max) max = v;
             return max;
         }
+
         public void Save(string path)
         {
-            var json = JsonSerializer.Serialize(qTable,
-                new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(
+                qTable,
+                new JsonSerializerOptions { WriteIndented = true }
+            );
 
             File.WriteAllText(path, json);
         }
@@ -72,8 +101,8 @@ namespace SnakeGame.Ai
         public void Load(string path)
         {
             var json = File.ReadAllText(path);
-            qTable = JsonSerializer.Deserialize<Dictionary<int, double[]>>(json);
-
+            qTable = JsonSerializer.Deserialize<Dictionary<int, double[]>>(json)
+                     ?? new Dictionary<int, double[]>();
             Epsilon = 0.0;
         }
     }

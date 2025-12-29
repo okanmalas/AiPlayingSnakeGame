@@ -1,4 +1,3 @@
-using System;
 using SnakeGame.Enviroment;
 
 namespace SnakeGame.Ai
@@ -12,18 +11,28 @@ namespace SnakeGame.Ai
             agent = existingAgent ?? new QLearningAgent();
         }
 
-        public void Train(int episodes, int maxSteps)
+        public void Train(TrainingConfig cfg)
         {
-            var env = new SnakeEnvironment(40, 20);
-            var logger = new TrainingLogger();
+            agent.Epsilon = cfg.StartEpsilon;
+            agent.EpsilonMin = cfg.MinEpsilon;
+            agent.EpsilonDecay = cfg.EpsilonDecay;
+            if (agent.EpsilonDecay <= 0 || agent.EpsilonDecay >= 1)
+                throw new Exception($"Invalid epsilon decay value: {agent.EpsilonDecay}");
 
-            for (int ep = 1; ep <= episodes; ep++)
+            var env = new SnakeEnvironment(cfg.BoardWidth, cfg.BoardHeight);
+
+            double bestRewardEver = double.NegativeInfinity;
+            Dictionary<int, double[]>? bestQTable = null;
+
+            double lastEpisodeReward = 0;
+
+            for (int ep = 1; ep <= cfg.Episodes; ep++)
             {
                 env.Reset();
                 int state = env.GetState();
                 double totalReward = 0;
 
-                for (int step = 0; step < maxSteps; step++)
+                for (int step = 0; step < cfg.MaxSteps; step++)
                 {
                     int action = agent.ChooseAction(state);
                     var (nextState, reward, done) = env.Step(action);
@@ -35,18 +44,37 @@ namespace SnakeGame.Ai
 
                     if (done) break;
                 }
+                
+                if (totalReward > bestRewardEver)
+                {
+                    bestRewardEver = totalReward;
+                    bestQTable = agent.GetQTableCopy();
+                }
+
+                lastEpisodeReward = totalReward;
 
                 agent.DecayEpsilon();
 
                 if (ep % 100 == 0)
                 {
                     Console.WriteLine(
-                        $"Ep: {ep} | Reward: {totalReward:F2} | Epsilon: {agent.Epsilon:F2}");
+                        $"Ep: {ep} | Reward: {totalReward:F2} | Best: {bestRewardEver:F2} | Epsilon: {agent.Epsilon:F3}");
                 }
             }
 
-            agent.Save("snake_model.json");
-            Console.WriteLine("Model saved.");
+            if (bestQTable != null && lastEpisodeReward < bestRewardEver)
+            {
+                agent.LoadQTable(bestQTable);
+                agent.Save("snake_model.json");
+
+                Console.WriteLine(
+                    $"Best model saved (reward = {bestRewardEver:F2})");
+            }
+            else
+            {
+                agent.Save("snake_model.json");
+                Console.WriteLine("Final model saved");
+            }
         }
     }
 }

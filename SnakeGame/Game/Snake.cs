@@ -111,4 +111,8 @@ public class Snake
         var next = (Head.x + nx, Head.y + ny);
         return board.IsWallCollision(next) || body.Contains(next);
     }
+    public int Length()
+    {
+        return body.Count;
+    }
 }
